@@ -49,7 +49,7 @@ This project analyzes teenage birth rates in the United States at the county lev
 ### **How to Run the Project**
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/teen_birth_rates_analysis.git
+   git clone https://github.com/RichelCode/Teenage_Pregnancy_Analysis.git
    cd teen_birth_rates_analysis
    ```
 2. Install required R packages (if not already installed):
