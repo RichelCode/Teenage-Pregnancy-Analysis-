@@ -1,0 +1,419 @@
+---
+title: "Individual Project - Richel (504)"
+author: "Richel Attafuah"
+date: "2025-03-20"
+output: html_document
+---
+
+## **Introduction: Understanding Teenage Birth Rates in the U.S.**
+Teenage pregnancy remains a significant public health and social concern in the United States, influencing young mothers' education, career prospects, and overall well-being. Over the years, various policies, healthcare initiatives, and educational programs have aimed to reduce teenage birth rates. However, disparities persist across states and counties, influenced by socioeconomic factors, access to healthcare, and cultural norms.
+
+This study leverages **county-level teen birth rate data (2003–2020)** to explore:
+- **How have teenage birth rates changed over time?**
+- **Which states and counties exhibit the highest and lowest rates?**
+- **Are there identifiable trends or patterns in birth rates across different regions?**
+
+
+Using advanced **exploratory data analysis (EDA)** techniques and visually compelling **ggplots** (with colorblind-friendly palettes), this project aims to **uncover key insights, highlight regional disparities, and present findings in an engaging and data-driven manner**.
+
+---
+
+## **Structure of the Analysis**
+The R Markdown will follow this structured approach:
+
+### **Data Cleaning & Preprocessing**
+- Checking for missing values and inconsistencies
+- Transforming and restructuring data for easy analysis
+- Converting categorical variables appropriately
+
+### **Exploratory Data Analysis (EDA)**
+- **National Trends**: Evolution of teenage birth rates across the U.S.
+- **State & County-Level Trends**: Identifying high and low-rate regions.
+- **Distribution Analysis**: Examining the spread of birth rates across different years.
+- **Temporal Changes**: How have rates changed from 2003 to 2020?
+- **Top & Bottom States**: Identifying consistent trends.
+
+### **Advanced Visualization (Enhanced ggplots)**
+- **Heatmaps & Choropleths**: Mapping teenage birth rates across counties.
+- **Time-Series Line Graphs**: Highlighting state and national-level changes.
+- **Boxplots & Violin Plots**: Understanding distribution and variability.
+- **Confidence Interval Analysis**: Bayesian credible intervals for uncertainty representation.
+
+### **Key Findings & Policy Insights**
+- Summary of major trends and disparities.
+- Recommendations for public health policies and interventions.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Load necessary packages
+library(tidyverse)
+library(ggcorrplot)
+library(ggplot2)
+```
+
+
+
+### **Loading the Data**  
+The dataset used in this analysis contains county-level teenage birth rates in the U.S. from 2003 to 2020. It includes variables such as birth rates per 1,000 females aged 15–19, confidence intervals, and geographic identifiers. First, we load the dataset into R, inspect its structure, and perform necessary preprocessing steps to ensure data quality before analysis.
+
+
+
+```{r Loading Data}
+# Read the dataset
+df <- read.csv("C:\\Users\\attafuro\\Desktop\\Teenage Pregnancy\\Data.csv")
+
+# View the first few rows
+head(df)
+
+# Check structure of the dataset
+str(df)
+
+# Summary statistics
+summary(df)
+
+```
+
+
+
+```{r Data Cleaning}
+# Check for missing values
+missing_values <- colSums(is.na(df))
+missing_values
+
+# Convert column names to a consistent format
+colnames(df) <- colnames(df) %>% 
+  tolower() %>% 
+  str_replace_all("\\.", "_")  # Replace periods with underscores for easy referencing
+
+# Convert state and county to factors
+df <- df %>%
+  mutate(
+    state = as.factor(state),
+    county = as.factor(county)
+  )
+# Ensure data types are correctly assigned
+str(df)
+```
+
+
+
+### **Introduction to Exploratory Data Analysis (EDA)**  
+In this project, Exploratory Data Analysis (EDA) serves as the foundation for uncovering meaningful patterns and trends in teenage birth rates across U.S. counties from 2003 to 2020. By analyzing the distribution of birth rates, examining changes over time, and comparing variations across states and counties, EDA allows us to understand the scope and dynamics of teenage pregnancy in the United States. This step is essential for identifying disparities, highlighting areas of concern, and informing potential policy discussions—all supported by clean, compelling, and colorblind-friendly visualizations.
+
+
+
+```{r Exploratory Data Analysis 1}
+# Summary statistics for numerical variables
+summary(df %>% select(year, birth_rate, lower_confidence_limit, upper_confidence_limit))
+
+```
+
+
+
+The dataset reveals a wide range in teenage birth rates across U.S. counties from 2003 to 2020, with rates ranging from as low as 0.7 to as high as 143.9 births per 1,000 females aged 15–19. The median birth rate stands at 32.6, while the average is slightly higher at 35.95, indicating a slight right skew. Confidence intervals also vary significantly, with the upper bounds reaching up to 459.4 in some counties, suggesting high uncertainty in certain estimates. Overall, the data highlights substantial variation in teenage birth rates and associated uncertainties across different regions and years.
+
+
+
+```{r Exploratory Data Analysis 2}
+ggplot(df, aes(x = birth_rate)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "#1b9e77", color = "black", alpha = 0.7) +
+  geom_density(color = "#d95f02", size = 1) +
+  labs(title = "Distribution of Teenage Birth Rates (2003–2020)",
+       x = "Birth Rate per 1,000 Females (15–19)",
+       y = "Density",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+The histogram and density plot illustrate the distribution of **teenage birth rates (per 1,000 females aged 15–19) across U.S. counties from 2003 to 2020**. The distribution is **right-skewed**, indicating that while most counties have relatively low to moderate birth rates, a few counties experience significantly higher rates. The peak occurs around **20–40 births per 1,000 females**, with a gradual decline as birth rates increase. The long right tail suggests the presence of extreme values, highlighting disparities across different regions. The density curve provides a smoothed estimate of the probability distribution, reinforcing the skewness and emphasizing the variation in birth rates across counties. This insight is crucial for identifying high-risk areas and targeting interventions effectively.
+
+
+
+
+```{r EDA 3}
+
+# Mean Birth Rate Over Time
+df %>%
+  group_by(year) %>%
+  summarise(mean_birth_rate = mean(birth_rate, na.rm = TRUE)) %>%
+  ggplot(aes(x = year, y = mean_birth_rate)) +
+  geom_line(size = 1.2, color = "#1b9e77") +
+  geom_point(size = 2, color = "#d95f02") +
+  labs(title = "Trend of Teenage Birth Rate Over Time (2003-2020)",
+       x = "Year",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+
+```
+
+
+
+
+
+The line plot illustrates the **trend of teenage birth rates in the U.S. from 2003 to 2020**, showing a **consistent decline over time**. The mean birth rate per 1,000 females aged 15–19 remained relatively stable in the early years, peaking around **2007–2009**, before experiencing a **steady and sharp decline from 2010 onward**. This downward trend suggests the impact of various factors, including improved access to contraception, increased awareness of teen pregnancy prevention programs, and shifts in social and economic conditions. The consistent decline highlights significant progress in reducing teenage birth rates nationwide.
+
+
+
+
+```{r EDA 4}
+# Top 10 States with the Most Data Points
+df %>%
+  count(state, sort = TRUE) %>%
+  top_n(10, n) %>%
+  ggplot(aes(x = reorder(state, n), y = n)) +
+  geom_bar(stat = "identity", fill = "#7570b3", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 States with the Most Data Points",
+       x = "State",
+       y = "Number of Observations",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+```
+
+
+
+
+
+This bar chart displays the top 10 states with the highest number of observations in the dataset, indicating where the most county-level teenage birth rate data was recorded between 2003 and 2020. Texas leads with the most data points, followed by Georgia, Virginia, and Kentucky, suggesting that these states have more counties or more complete data collection over time. The variation in data availability can influence analysis results and should be considered when interpreting state-level trends.
+
+
+
+```{r EDA 5}
+# Top 10 Counties with the Most Data Points
+df %>%
+  count(county, sort = TRUE) %>%
+  top_n(10, n) %>%
+  ggplot(aes(x = reorder(county, n), y = n)) +
+  geom_bar(stat = "identity", fill = "#e7298a", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 Counties with the Most Data Points",
+       x = "County",
+       y = "Number of Observations",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+```
+
+
+
+
+
+
+
+This visualization highlights the top 10 counties with the most recorded observations on teenage birth rates. Washington, Jefferson, and Franklin counties have the highest number of entries, likely due to their large geographic coverage or consistent data reporting practices. Understanding which counties have the most extensive records helps assess data reliability and identify regions where trends can be examined in greater detail.
+
+```{r EDA 6}
+# Compute Confidence Interval Width
+df <- df %>%
+  mutate(ci_width = upper_confidence_limit - lower_confidence_limit)
+
+# Distribution of Confidence Interval Widths
+ggplot(df, aes(x = ci_width)) +
+  geom_histogram(bins = 30, fill = "#66a61e", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Confidence Interval Widths",
+       x = "Width of Confidence Interval",
+       y = "Count",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+```
+
+
+
+This histogram illustrates the distribution of confidence interval (CI) widths in teenage birth rate estimates. The majority of observations have relatively small confidence intervals, indicating more precise estimates. 
+
+
+
+```{r EDA 7}
+# Select numeric variables for correlation analysis
+numeric_vars <- df %>% select(year, birth_rate, lower_confidence_limit, upper_confidence_limit)
+
+# Compute correlation matrix
+cor_matrix <- cor(numeric_vars, use = "complete.obs")
+
+# Print correlation matrix
+print(cor_matrix)
+
+```
+
+
+
+
+
+
+```{r EDA 8}
+# Generate an improved correlation heatmap
+ggcorrplot(cor_matrix, 
+           method = "square",       # Use squares instead of circles for better visibility
+           type = "full",           # Show full matrix for clarity
+           lab = TRUE,              # Display correlation coefficients
+           lab_size = 5,            # Increase text size
+           colors = c("#2166ac", "white", "#b2182b"), # Better contrast (blue to red)
+           title = "Enhanced Correlation Heatmap",
+           ggtheme = theme_minimal()) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels for readability
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+The **correlation heatmap** provides insights into the relationships between key numerical variables, including **year, birth rate, lower confidence limit, and upper confidence limit**. A notable observation is the **strong positive correlation between birth rate and its confidence limits**, with a **correlation of 0.98 and 0.97** for the lower and upper bounds, respectively. This suggests that as the estimated teenage birth rate increases, the confidence intervals also expand, indicating higher variability in counties with elevated birth rates. Additionally, the **negative correlation between year and birth rate (-0.44)** confirms the declining trend in teenage birth rates over time, aligning with previous findings. Similarly, year exhibits **a moderate negative correlation with confidence limits (-0.44, -0.43)**, implying that uncertainty in birth rate estimates has also reduced over the years, likely due to improved data collection and reporting practices. Furthermore, the **high correlation (0.91) between lower and upper confidence limits** suggests that counties with wider confidence intervals tend to exhibit consistently large uncertainty ranges in their birth rate estimates. These findings highlight the importance of tracking long-term trends in teenage pregnancy rates and considering confidence intervals when assessing data reliability. Understanding these correlations allows for better interpretation of regional disparities and informs targeted public health interventions aimed at further reducing teenage birth rates.
+
+
+
+
+
+
+
+
+```{r EDA 9}
+
+# Compute state-wise mean birth rate per year
+state_trend <- df %>%
+  group_by(state, year) %>%
+  summarise(mean_birth_rate = mean(birth_rate, na.rm = TRUE))
+
+# Plot state-wise trends
+ggplot(state_trend, aes(x = year, y = mean_birth_rate, group = state, color = state)) +
+  geom_line(alpha = 0.5) +
+  labs(title = "Teenage Birth Rate Trends by State (2003-2020)",
+       x = "Year",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none") # Hide legend to avoid clutter
+
+```
+
+
+
+
+
+
+
+
+
+```{r EDA 10}
+# Compute average birth rate by state
+state_avg_birth_rate <- df %>%
+  group_by(state) %>%
+  summarise(mean_birth_rate = mean(birth_rate, na.rm = TRUE)) %>%
+  arrange(desc(mean_birth_rate))
+
+# Plot top 10 states
+ggplot(state_avg_birth_rate %>% top_n(10, mean_birth_rate),
+       aes(x = reorder(state, mean_birth_rate), y = mean_birth_rate)) +
+  geom_bar(stat = "identity", fill = "#d95f02", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 States with Highest Teenage Birth Rates",
+       x = "State",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+
+```
+
+
+```{r EDA 11}
+
+# Plot bottom 10 states
+ggplot(state_avg_birth_rate %>% top_n(-10, mean_birth_rate),
+       aes(x = reorder(state, mean_birth_rate), y = mean_birth_rate)) +
+  geom_bar(stat = "identity", fill = "#1b9e77", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 States with Lowest Teenage Birth Rates",
+       x = "State",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+
+```
+
+```{r EDA 12}
+# Compute average birth rate by county
+county_avg_birth_rate <- df %>%
+  group_by(county) %>%
+  summarise(mean_birth_rate = mean(birth_rate, na.rm = TRUE)) %>%
+  arrange(desc(mean_birth_rate))
+
+# Plot top 10 counties
+ggplot(county_avg_birth_rate %>% top_n(10, mean_birth_rate),
+       aes(x = reorder(county, mean_birth_rate), y = mean_birth_rate)) +
+  geom_bar(stat = "identity", fill = "#e7298a", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 Counties with Highest Teenage Birth Rates",
+       x = "County",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+
+```
+
+
+```{r EDA 13}
+# Plot bottom 10 counties
+ggplot(county_avg_birth_rate %>% top_n(-10, mean_birth_rate),
+       aes(x = reorder(county, mean_birth_rate), y = mean_birth_rate)) +
+  geom_bar(stat = "identity", fill = "#7570b3", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 Counties with Lowest Teenage Birth Rates",
+       x = "County",
+       y = "Mean Birth Rate per 1,000 Females",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+
+```
+
+
+```{r EDA 14}
+# Compute average confidence interval width per state
+ci_width_analysis <- df %>%
+  mutate(ci_width = upper_confidence_limit - lower_confidence_limit) %>%
+  group_by(state) %>%
+  summarise(mean_ci_width = mean(ci_width, na.rm = TRUE)) %>%
+  arrange(desc(mean_ci_width))
+
+# Plot states with the widest confidence intervals
+ggplot(ci_width_analysis %>% top_n(10, mean_ci_width),
+       aes(x = reorder(state, mean_ci_width), y = mean_ci_width)) +
+  geom_bar(stat = "identity", fill = "#66a61e", alpha = 0.8) +
+  coord_flip() +
+  labs(title = "Top 10 States with Widest Confidence Intervals",
+       x = "State",
+       y = "Mean Confidence Interval Width",
+       caption = "Source: NCHS") +
+  theme_minimal(base_size = 14)
+
+```
+
+
+```{r EDA 15}
+
+```
