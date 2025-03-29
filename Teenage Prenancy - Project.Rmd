@@ -46,10 +46,18 @@ The R Markdown will follow this structured approach:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 # Load necessary packages
 library(tidyverse)
 library(ggcorrplot)
 library(ggplot2)
+library(sf)
+library(tmap)
+library(ggplot2)
+library(tidyverse)
+library(tigris)
+options(tigris_use_cache = TRUE)  # Cache shapefile to speed up future runs
+
 ```
 
 
@@ -315,6 +323,11 @@ ggplot(state_trend, aes(x = year, y = mean_birth_rate, group = state, color = st
 
 
 
+This line graph visualizes the trend of mean teenage birth rates (ages 15–19) across all 51 U.S. states from 2003 to 2020. While states exhibit different initial rates and trajectories, the collective pattern reveals a consistent and substantial decline nationwide. High-rate states like Mississippi and Arkansas started with significantly elevated levels, but even they show downward movement. The convergence of lines in later years suggests a narrowing gap between states, indicating widespread improvement in reducing teenage pregnancies.
+
+
+
+
 
 ```{r EDA 10}
 # Compute average birth rate by state
@@ -338,6 +351,14 @@ ggplot(state_avg_birth_rate %>% top_n(10, mean_birth_rate),
 ```
 
 
+
+
+
+
+
+
+This horizontal bar chart highlights the ten U.S. states with the highest mean teen birth rates over the 2003–2020 period. The Southern states dominate the list, with Mississippi, Arkansas, and Texas leading in elevated rates. These states consistently reported birth rates exceeding 45 births per 1,000 females aged 15–19, far above the national average. This spatial pattern underscores persistent regional disparities and potential socioeconomic and policy-driven factors contributing to elevated teen pregnancy rates.
+
 ```{r EDA 11}
 
 # Plot bottom 10 states
@@ -353,6 +374,15 @@ ggplot(state_avg_birth_rate %>% top_n(-10, mean_birth_rate),
 
 
 ```
+
+
+
+
+
+
+In contrast, this chart showcases states with the lowest average teen birth rates across the same period. Northeastern and Upper Midwestern states such as Minnesota, Maine, Wisconsin, and New York demonstrate consistently low rates, with some states maintaining averages below 20 births per 1,000. This pattern reflects potential impacts of enhanced access to healthcare, education, and youth-focused reproductive programs that are often stronger in these regions.
+
+
 
 ```{r EDA 12}
 # Compute average birth rate by county
@@ -376,6 +406,12 @@ ggplot(county_avg_birth_rate %>% top_n(10, mean_birth_rate),
 ```
 
 
+
+
+
+
+At the county level, this plot surfaces the top 10 counties with the highest mean birth rates among teens. These counties, including Tunica (MS), Wade Hampton (AK), and Zapata (TX), display birth rates nearing or exceeding 90 births per 1,000 females, more than double the national average. The visualization exposes localized public health challenges, suggesting the need for targeted intervention and localized policy response in these high-burden communities.
+
 ```{r EDA 13}
 # Plot bottom 10 counties
 ggplot(county_avg_birth_rate %>% top_n(-10, mean_birth_rate),
@@ -390,6 +426,15 @@ ggplot(county_avg_birth_rate %>% top_n(-10, mean_birth_rate),
 
 
 ```
+
+
+
+
+
+
+
+This chart presents counties with the lowest mean teen birth rates across the dataset. Counties such as Lexington City (VA), Tompkins (NY), and Story (IA) report extremely low averages — often under 6 births per 1,000. These counties exemplify successful public health environments, possibly characterized by comprehensive sex education, accessible reproductive health services, and strong youth development programs.
+
 
 
 ```{r EDA 14}
@@ -414,6 +459,84 @@ ggplot(ci_width_analysis %>% top_n(10, mean_ci_width),
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This graph identifies states where the uncertainty around the estimated birth rates is greatest, using the width of Bayesian credible intervals. Alaska, Nebraska, and Texas appear at the top, indicating more variability and lower precision in county-level estimates, likely due to sparse populations or data quality issues. This finding emphasizes the importance of considering confidence alongside point estimates when interpreting public health metrics.
+
+
+
+
 ```{r EDA 15}
+# Fetch latest U.S. county shapefile
+us_counties <- counties(cb = TRUE, year = 2020, class = "sf")
+
+# Check the structure of the shapefile
+head(us_counties)
+
+# Ensure FIPS codes are characters and match formats
+df$combined_fips_code <- as.character(df$combined_fips_code)
+us_counties$GEOID <- as.character(us_counties$GEOID)
+
+# Merge the shapefile with our dataset
+county_data <- us_counties %>%
+  left_join(df, by = c("GEOID" = "combined_fips_code"))
 
 ```
+
+
+```{r teen-birth-map}
+ggplot(county_data) +
+  geom_sf(aes(fill = birth_rate), color = "white", size = 0.1) +
+  scale_fill_viridis_c(option = "magma", name = "Birth Rate") +
+  labs(title = "Teen Birth Rates in the Continental U.S. (2003–2020)",
+       caption = "Source: NCHS") +
+  coord_sf(xlim = c(-125, -66), ylim = c(24, 50), expand = FALSE) +
+  theme_minimal(base_size = 14)
+
+
+```
+
+
+
+
+
+
+
+This static map offers a geographical overview of mean teen birth rates across all U.S. counties during the full 2003–2020 period. A clear regional pattern emerges, with higher birth rates concentrated in the Southeast, parts of Texas, and pockets of the West, while the Northeast and West Coast counties show relatively lower rates. Grey areas represent missing or suppressed data, reinforcing the need for data coverage improvements.
+
+```{r faceted-map, fig.width=20, fig.height=6, message=FALSE, warning=FALSE}
+ggplot(county_data %>% filter(year %in% c(2003, 2010, 2020))) +
+  geom_sf(aes(fill = birth_rate), color = "white", size = 0.05) +
+  scale_fill_viridis_c(option = "plasma", name = "Birth Rate") +
+  facet_wrap(~year, nrow = 1) +
+  labs(
+    title = "Teen Birth Rates Across U.S. Counties (2003, 2010, 2020)",
+    caption = "Source: NCHS"
+  ) +
+  theme_minimal(base_size = 16) +
+  theme(strip.text = element_text(size = 18))
+```
+
+
+These faceted choropleth maps provide a temporal snapshot of how teen birth rates have evolved spatially over time. In 2003, a broader spread of high-rate counties is evident. By 2010, a slight improvement is visible, and by 2020, a significant reduction in high-rate counties is apparent. This layout compellingly demonstrates both the temporal progress made and the counties where high rates persist, helping to guide further investigation and action.
+
+
+
+
